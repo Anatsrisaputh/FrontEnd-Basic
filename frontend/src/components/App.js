@@ -1,15 +1,29 @@
-import React, {useState} from 'react';
-import axios from 'axios';
+import React, {useState, useEffect} from 'react';
+import axios from '../config/axios';
 import './App.css';
+import LoginForm from './LoginForm';
+import jwtDecode from "jwt-decode";
 
 function App() {
   const [students, setStudent] = useState([]);
   const [nameValue, setNameValue] = useState("");
   const [ageValue, setAgeValue] = useState("");
   const [numberValue, setPhoneNumber] = useState("");
+  const [isLogin, setIsLogin] = useState(false);
+  const [userInfo, setUserInfo] = useState({});
+
+  useEffect(() => {
+    fetchData();
+    const token = localStorage.getItem("ACCESS_TOKEN");
+    if (token) {
+      const user = jwtDecode(token);
+      setUserInfo(user)
+      setIsLogin(true);
+    };
+  }, [])
 
   const fetchData = async () => {
-    const result = await axios.get("http://localhost:8000/students");
+    const result = await axios.get("/students");
     console.log(result.data);
     setStudent(result.data);
   }
@@ -20,7 +34,7 @@ function App() {
       age: ageValue,
       number: numberValue
     }
-    await axios.post("http://localhost:8000/students", body);
+    await axios.post("/students", body);
     alert("Send Data to Backend succeed");
     fetchData();
     setNameValue("");
@@ -29,7 +43,8 @@ function App() {
   }
 
   const deleteStudent = async (id)=> {
-    await axios.delete(`http://localhost:8000/students/${id}`);
+    const headers = {Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN")}`};
+    await axios.delete(`/students/${id}`, {headers: headers});
     alert("Student has been delete");
     fetchData();
   }
@@ -43,7 +58,7 @@ function App() {
       age: editAge,
       number: editPhone
     }
-    await axios.put(`http://localhost:8000/students/${id}`, body);
+    await axios.put(`/students/${id}`, body);
     alert("Send data to edit succeed");
     fetchData();
   }
@@ -52,15 +67,22 @@ function App() {
   return (
 
     <div className="App">
-      <button onClick={fetchData}>Fetch Data</button>
+      <LoginForm 
+      userInfo={userInfo}
+      setUserInfo={setUserInfo}
+      isLogin={isLogin}
+      setIsLogin={setIsLogin}
+      />
+      <h1>Student Name</h1>
       {students.map((student) => 
       <div style={{border: "1px solid black"}}> 
       <div>{`name ${student.name}`}</div>
       <div>{`age ${student.age}`}</div>
       <div>{`Tel ${student.number_phone}`}</div>
       <div>
-      <button onClick={ () => deleteStudent(student.id)}>Delete</button><span />
-      <button onClick={ () => editStudent(student.id)}>Edit</button>
+      {isLogin ? ( <div> <button onClick={ () => deleteStudent(student.id)}>Delete</button> 
+
+      <button onClick={ () => editStudent(student.id)}>Edit</button> </div> ) : null}
       </div>
       </div>
       )}
